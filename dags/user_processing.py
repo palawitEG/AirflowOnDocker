@@ -3,12 +3,13 @@ from airflow.providers.sqlite.operators.sqlite import SqliteOperator
 from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 from datetime import datetime
 from pandas import json_normalize
 import json
 
 default_args = {
-    "start_date": datetime(2021, 1, 10)
+    "start_date": datetime(2021, 3, 10)
 }
 
 def _processing_user(ti):
@@ -37,7 +38,7 @@ with DAG(
         task_id="creating_table",
         sqlite_conn_id="db_sqlite",
         sql = '''
-            CREATE TABLE users(
+            CREATE TABLE IF NOT EXISTS users(
                 username TEXT NOT NULL,
                 password TEXT NOT NULL,
                 fname TEXT NOT NULL,
@@ -61,8 +62,14 @@ with DAG(
         log_response=True
     )
 
-    python_task = PythonOperator(
+    processing_user = PythonOperator(
         task_id="processing_user",
         python_callable=_processing_user
     )
-     
+
+    storing_user = bash_task = BashOperator(
+        task_id="storing_user",
+        bash_command='echo -e ".separator ","\n.import /opt/airflow/dbs/processing_user.csv users" | sqlite3 /opt/airflow/dbs/airflow.db'
+    )
+
+    creating_table >> is_api_available >> extracting_user >> processing_user >> storing_user
