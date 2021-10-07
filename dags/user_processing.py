@@ -9,7 +9,7 @@ from pandas import json_normalize
 import json
 
 default_args = {
-    "start_date": datetime(2021, 3, 10)
+    "start_date": datetime(2021, 10, 3)
 }
 
 def _processing_user(ti):
