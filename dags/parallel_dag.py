@@ -1,6 +1,8 @@
 from airflow.models import DAG
 from datetime import datetime
 from airflow.operators.bash import BashOperator
+from airflow.operators.subdag import SubDagOperator
+from subDAGs.subdag_parallel_dag import subdag_parallel_dag
 
 default_args = {
     "start_date": datetime(2021, 10, 3)
@@ -20,14 +22,9 @@ with DAG(
         bash_command="sleep 3 && echo 'task-1 done.'"
     )
 
-    task2 = BashOperator(
-        task_id="task-2",
-        bash_command="sleep 3 && echo 'task-2 done.'"
-    )
-
-    task3 = BashOperator(
-        task_id="task-3",
-        bash_command="sleep 3 && echo 'task-3 done.'"
+    processing = SubDagOperator(
+        task_id="processing_tasks",
+        subdag=subdag_parallel_dag("parallel_dag", "processing_tasks", default_args)
     )
 
     task4 = BashOperator(
@@ -35,4 +32,4 @@ with DAG(
         bash_command="sleep 3 && echo 'task-4 done.'"
     )
 
-    task1 >> [task2, task3] >> task4
+    task1 >> processing >> task4
